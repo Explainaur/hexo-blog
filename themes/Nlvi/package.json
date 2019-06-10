@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/ColMugX/hexo-theme-Nlvi#readme",
   "dependencies": {
+    "hexo-generator-index-pin-top": "^0.2.2",
     "hexo-generator-search": "^2.3.0",
     "hexo-generator-searchdb": "^1.0.8"
   }
