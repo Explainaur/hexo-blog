@@ -147,19 +147,21 @@ sh.interactive()
 
 &emsp;&emsp;checksec后我们发现程序开启了canary，大概要进行canary的泄漏。  
 
-![checksec](../pictures/babstack_1.png)  
+![checksec](https://github.com/Explainaur/hexo-blog/blob/master/source/pictures/babstack_1.png?raw=true)  
 
 &emsp;&emsp;在对main函数进行静态分析后我们发现了一个明显的溢出点，** read()** 函数存在经典溢出，而且在  **case 2** 处我们可以通过 **puts()** 函数泄露canary的值。  
 
-![overflow](../pictures/babstack_2.png)
+![overflow](https://github.com/Explainaur/hexo-blog/blob/master/source/pictures/babstack_2.png?raw=ture)
 
 &emsp;&emsp;对于canary的泄漏方式，最简单的一种是覆盖其最低为的 *\x00* 字节，防止截断，然后通过puts将其泄漏出来。  
 
 &emsp;&emsp;仔细审计程序之后，我们基本清楚了攻击流程，首先这是一个经典的菜单类程序，通过case 1我们可以覆盖栈上的数据，因此，第一步我们先填充padding来覆盖canary的低位字节经计算offset为136个字节。
 
-![canary](../pictures/babstack_3.png)
+![canary](https://github.com/Explainaur/hexo-blog/blob/master/source/pictures/babstack_3.png?raw=true)
 
 &emsp;&emsp;接着case 2打印canary，第二步，我们要通过rop来泄露system与bin_sh的地址。查询后发现了比较好用的 `pop rdi ; ret` .这个时候payload已经基本清楚了，用puts泄漏计算偏移，然后case 3退出是返回到main，接着case 3退出返回到system。  
+
+![rop](https://github.com/Explainaur/hexo-blog/blob/master/source/pictures/babstack_4.png?raw=true)
 
 ```python
 #!/usr/bin/env python
