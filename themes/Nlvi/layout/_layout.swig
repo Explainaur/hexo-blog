@@ -22,7 +22,7 @@
     color: #FC5185;
     font-weight:500;
     font-size:30px;
-    ">The dyf blog</h1>
+    ">The dyf's blog</h1>
 
       <main class="main" id="main">
         <div class="main-wrapper">
