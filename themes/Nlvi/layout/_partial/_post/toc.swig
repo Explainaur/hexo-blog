@@ -1,3 +1,4 @@
+
 {% if theme.toc %}
   <aside class="post-toc">
     <span class="title" id="toc-switch"><span>{{ __('page.index') }}</span></span>

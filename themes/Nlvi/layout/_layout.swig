@@ -15,6 +15,15 @@
 
     {% include "_partial/header.swig" %}
     <div class="container-inner">
+
+    <h1 style="
+    text-align:center;
+    font-family:cathsgbr;
+    color: #FC5185;
+    font-weight:500;
+    font-size:30px;
+    ">The dyf blog</h1>
+
       <main class="main" id="main">
         <div class="main-wrapper">
           {% block main %} {% endblock %}
