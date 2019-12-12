@@ -6,10 +6,16 @@ tags:
 ---
 
 #### 背景
-&emsp;&emsp;2019.12.12去阿里云安全旗下的长亭科技面试, 超级紧张,毕竟是地表最强安全公司. 面试时间15:30,我14:26从806出发,路上吃了碗面,然后找20min没找到地方....后来发现是导航错了.
+
+---
+
+&emsp;&emsp;求简大佬内推, 2019.12.12去阿里云安全旗下的长亭科技面试, 超级紧张,毕竟是地表最强安全公司. 面试时间15:30,我14:26从806出发,路上吃了碗面,然后找20min没找到地方....后来发现是导航错了.
 15:26分,到达公司. 看到一堆小零食和一柜子饮料,还有一堆黑客(划掉)安全人员. HR小姐姐人超级好,在微信上和我斗图哈哈哈,然后带来了某巨佬面试我,史上最硬核面试开始了...
 
 #### 面试
+
+---
+
 &emsp;&emsp;面试官是一位超级和善的安全研究员,先从最简单的开始问我,栈溢出的原理是啥类,linux下二进制保护措施有啥呀,原理是啥呀,咋绕过呀,能不能更给力一点呀同学?
 
 我: 叽里呱啦....
@@ -50,7 +56,7 @@ tags:
 
 带佬: ssrf盲打如何操作, 如何验证payload, 如何内网打redis
 
-![cry](../pictures/cry.jpeg)
+![cry](https://github.com/Explainaur/hexo-blog/blob/master/source/pictures/cry.jpeg?raw=true)
 
 我: 嘤嘤嘤...不会
 
@@ -64,7 +70,7 @@ tags:
 
 带佬: 还行, 分析过cve么,就前几天那个phpfmp的洞看过吗?
 
-![cry](../pictures/cry.jpeg)
+![cry](https://github.com/Explainaur/hexo-blog/blob/master/source/pictures/cry.jpeg?raw=true)
 
 我: ...哭
 
@@ -90,7 +96,7 @@ tags:
 
 带佬: 恩, 解释性语言的逆向原理了解过么,就pyc那种.
 
-![cry](../pictures/cry.jpeg)
+![cry](https://github.com/Explainaur/hexo-blog/blob/master/source/pictures/cry.jpeg?raw=true)
 
 我: ...无
 
@@ -134,7 +140,7 @@ tags:
 
 我: 啊? 还能这样?
 
-![cry](../pictures/cry.jpeg)
+![cry](https://github.com/Explainaur/hexo-blog/blob/master/source/pictures/cry.jpeg?raw=true)
 
 带佬: magic number被去掉了或者elf结构乱了你分析个啥啊
 
@@ -156,6 +162,8 @@ tags:
 
 #### 超级nice的HR姐姐
 
+---
+
 &emsp;&emsp;HR姐姐就问了问性格啥的, 能来几天啊, 为啥干这个呀, 然后开始跟她将笑话...嗯...
 
 HR姐姐: 我们一天300
@@ -176,11 +184,13 @@ HR姐姐: 哈哈哈这两天会通知你结果.
 
 #### 结果
 
+---
+
 &emsp;&emsp;出来的时候才意识到只有一次技术面,看网上都是好几面...但是感觉挺稳的,毕竟相谈甚欢,赶紧问问简大佬
 
 大概过了一个小时, 简大老和我说稳了....耶! 点个外卖奖励一下自己.
 
-![smile](../pictures/smile.jpg)
+![smile](https://github.com/Explainaur/hexo-blog/blob/master/source/pictures/smile.jpg?raw=true)
 
 
 
@@ -192,6 +202,8 @@ HR姐姐: 哈哈哈这两天会通知你结果.
 
 
 ## web
+
+---
 
 ### php
 
@@ -713,7 +725,7 @@ payload:
 &emsp;&emsp;如果表达式为false时，sql语句会报ERROR 1242 (21000): Subquery returns more than 1 row的错误，导致查询内容为空，如果表达式为true是，则会返回正常的页面。
     
 ###### 基于时间
-    
+
     ```sql
     order by if(1=1,1,sleep(1))
     ```    
@@ -723,7 +735,7 @@ payload:
     select * from ha order by if(1=1,1,sleep(1)); #正常时间
     select * from ha order by if(1=2,1,sleep(1)); #有延迟
     ```
-    
+
 &emsp;&emsp;测试的时候发现延迟的时间并不是sleep(1)中的1秒，而是大于1秒。 最后发现延迟的时间和所查询的数据的条数是成倍数关系的.计算公式:
     ```sql
     延迟时间=sleep(1)的秒数*所查询数据条数
@@ -731,7 +743,7 @@ payload:
 &emsp;&emsp;我所测试的表中有四条数据,所以延迟了4秒。如果查询的数据很多时，延迟的时间就会很长了。 在写脚本时，可以添加timeout这一参数来避免延迟时间过长这一情况。
     
     ###### 基于rand()的盲注
-    
+
 原理与上面类似,看例子:
     ```sql
     mysql> select * from ha order by rand(true);
