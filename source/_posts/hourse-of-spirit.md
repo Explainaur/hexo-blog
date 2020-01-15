@@ -291,10 +291,11 @@ void leave_message(void)
 
 
 
-1. - 我们可以在0x804a2a0处伪造一个chunk，由于一个rifle的大小为0x38，因此我们选择伪造size为0x41的fastbin chunk。这时我们发现0x804a2a4即rifles_count，这个值正好是chunk的size字段，因此我们可以在free这个chunk之前 add 0x41个rifles就可以控制其大小。
+2. - 我们可以在0x804a2a0处伪造一个chunk，由于一个rifle的大小为0x38，因此我们选择伪造size为0x41的fastbin chunk。这时我们发现0x804a2a4即rifles_count，这个值正好是chunk的size字段，因此我们可以在free这个chunk之前 add 0x41个rifles就可以控制其大小。
    - 但是这里还有一点需要注意，我们还需要修改下一个物理相邻chunk的size，我们算了一下偏移，0x804a2a0 + 0x40 = 0x804a2e0,这个地方就是next_chunk的size字段，我们可以通过leave_message()来覆盖这个字段，*message即0x804a2c0这里写入一段信息，我们计算一下偏移0x804a2e0 - 0x804a2c0 = 0x20 == 32. 再加上4个字节覆盖掉prev_size,因此一共输入36个字节的padding就能到达size字段。所以paload = '\x00' * 36 + p32(0x41)
    - 这里之所以用\x00做padding是因为要把fake_chunk的prev设成null，否则free之后会出错。
-2. 最后，我们就重新分配rifle，获得刚刚伪造的chunk，然后覆盖message指针的地址，将其设置为strlen()函数的got地址，然后leave_message()用system()覆盖got表,即可getshell。
+
+3.  最后，我们就重新分配rifle，获得刚刚伪造的chunk，然后覆盖message指针的地址，将其设置为strlen()函数的got地址，然后leave_message()用system()覆盖got表,即可getshell。
 
 到这里思路已经十分明确了，payload如下：
 
@@ -399,7 +400,7 @@ main()
 
 &emsp;&emsp;这里有个点值得注意，我们最后一步覆盖system_got的时候可以直接传`p32(system_addr) + ";/bin/sh\x00"`.因为,在strlen被覆盖之后，会执行`addEnd()`函数，相当于`strlen(p32(system_addr) + ";/bin/sh\x00".)`即`system(p32(system_addr)) 和 system("/bin/sh\x00")`这样就可以快速getshell。当然，也可以覆盖其他函数的got表，比如sscanf，然后在输入的action的时候输入`/bin/sh`也可getshell。
 
-
+![shell](https://github.com/Explainaur/hexo-blog/blob/master/source/pictures/oreo.png?raw=true)
 
 
 
