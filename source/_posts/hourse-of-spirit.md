@@ -1,5 +1,5 @@
 ---
-title: hourse of spirit
+title: House of spirit
 date: 2020-01-08 17:02:45
 tags:
 	- thinking
