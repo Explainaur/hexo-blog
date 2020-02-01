@@ -170,6 +170,46 @@ switch ($a) {
 
 &emsp;&emsp;原理与上类似,不再阐述.
 
+### 函数的漏洞
+
+#### parse_url()
+
+```php
+parse_url ( string $url [, int $component = -1 ] ) : mixed
+```
+
+&emsp;&emsp;该函数解析URL，并返回其组成部分。其返回值为一个关联数组。该函数常用于获取url中的相关字段。例如：
+
+```php
+$url=parse_url($_SERVER['REQUEST_URI']);
+parse_str($url['query'],$query);
+```
+
+通过这种方式拿到url中的GET value。但是在php5.4.7之前此函数存在漏洞，举个栗子：
+
+```php
+<?php 
+$data = parse_url($_SERVER['REQUEST_URI']); 
+var_dump($data);
+$filter=["cache", "binarycloud"]; 
+foreach($filter as $f)
+{ 
+        if(preg_match("/".$f."/i", $data['query']))
+        { 
+                die("Attack Detected"); 
+        } 
+} 
+?>
+```
+
+正常情况下我们`curl "127.0.0.1/a.php?/cache"`会被检测到，这个时候一个通用的绕过方式为：
+
+```shell
+curl "127.0.0.1//a.php?/cache"
+```
+
+这时`a.php?/cache`会被当作data['path']，而不再是query，导致绕过过滤。假如payload为`///a.php?/cache`那么parse_url()会返回False，也可以绕过过滤。
+
 
 
 
